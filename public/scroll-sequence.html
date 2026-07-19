@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scroll Sequence — AURA</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0b0a;
+      --text: #f5f0ea;
+      --muted: #8a8078;
+      --accent: #c4a882;
+      --font-sans: 'Outfit', system-ui, sans-serif;
+      --font-serif: 'Playfair Display', Georgia, serif;
+    }
+
+    html { scroll-behavior: auto; /* let GSAP handle smoothness */ }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Loading Overlay ──────────────────────────────── */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      gap: 1.5rem;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #loader .brand {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: var(--accent);
+    }
+    #loader .bar-track {
+      width: 220px;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #loader .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.15s linear;
+    }
+    #loader .pct {
+      font-size: 0.85rem;
+      letter-spacing: 3px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Spacer sections before & after the sequence ── */
+    .spacer {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .spacer-inner { max-width: 640px; }
+    .spacer-inner .label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    .spacer-inner h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+    .spacer-inner p {
+      font-size: 1.1rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .scroll-hint {
+      margin-top: 2.5rem;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .scroll-hint .arrow {
+      width: 24px;
+      height: 24px;
+      border-right: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(45deg);
+      animation: bounce 2s ease infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: rotate(45deg) translate(0, 0); opacity: 1; }
+      50%      { transform: rotate(45deg) translate(6px, 6px); opacity: 0.4; }
+    }
+
+    /* ── Canvas Wrapper (pinned by GSAP) ──────────────── */
+    #sequence-wrapper {
+      position: relative;
+      width: 100%;
+      /* Height set dynamically by ScrollTrigger, but we need enough scroll runway.
+         We multiply viewport height by a factor that gives smooth scrub. */
+      height: 500vh;
+    }
+
+    #sequence-canvas {
+      position: absolute;          /* pinned to top-left by ScrollTrigger */
+      top: 0; left: 0;
+      width: 100%;
+      height: 100vh;
+      display: block;
+      object-fit: contain;
+      background: var(--bg);
+    }
+
+    /* ── Frame counter badge (subtle) ────────────────── */
+    #frame-counter {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      font-size: 0.75rem;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 2px;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 50;
+      pointer-events: none;
+    }
+    #frame-counter.visible { opacity: 1; }
+
+    /* ── Responsive mobile polish ─────────────────────── */
+    @media (max-width: 768px) {
+      .spacer { min-height: 80vh; padding: 3rem 1.25rem; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loader">
+    <div class="brand">AURA</div>
+    <div class="bar-track"><div class="bar-fill" id="loader-bar"></div></div>
+    <div class="pct" id="loader-pct">0 %</div>
+  </div>
+
+  <!-- Intro Section -->
+  <section class="spacer">
+    <div class="spacer-inner">
+      <div class="label">Artisanal Craft Series</div>
+      <h2>Every Detail, Frame&nbsp;by&nbsp;Frame</h2>
+      <p>Scroll down to witness the making of an AURA piece — 144 hand-captured moments stitched into a single cinematic&nbsp;journey.</p>
+      <div class="scroll-hint">
+        <span>Scroll</span>
+        <div class="arrow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scroll-Linked Canvas Sequence -->
+  <div id="sequence-wrapper">
+    <canvas id="sequence-canvas"></canvas>
+  </div>
+
+  <!-- Outro Section -->
+  <section class="spacer">
+    <div class="spacer-inner">
+      <div class="label">Crafted with Intention</div>
+      <h2>From Timber&nbsp;to&nbsp;Heirloom</h2>
+      <p>What you just experienced is the soul of every AURA piece — patient craftsmanship distilled into a scroll. Each frame was captured inside our Portland workshop, where design meets devotion.</p>
+    </div>
+  </section>
+
+  <!-- Frame Counter -->
+  <div id="frame-counter">—</div>
+
+  <!-- GSAP + ScrollTrigger from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
+
+  <script>
+    (() => {
+      /* ───────────────────────────────────────────────────
+         Configuration
+      ─────────────────────────────────────────────────── */
+      const FRAME_COUNT   = 144;
+      const FRAME_PATH    = (i) => `frames/ezgif-frame-${String(i).padStart(3, '0')}.jpg`;
+      const NATIVE_W      = 2560;
+      const NATIVE_H      = 1440;
+
+      /* ───────────────────────────────────────────────────
+         DOM handles
+      ─────────────────────────────────────────────────── */
+      const canvas      = document.getElementById('sequence-canvas');
+      const ctx         = canvas.getContext('2d');
+      const loaderEl    = document.getElementById('loader');
+      const loaderBar   = document.getElementById('loader-bar');
+      const loaderPct   = document.getElementById('loader-pct');
+      const counterEl   = document.getElementById('frame-counter');
+
+      /* ───────────────────────────────────────────────────
+         Frame storage & state
+      ─────────────────────────────────────────────────── */
+      const frames      = new Array(FRAME_COUNT);
+      let loadedCount   = 0;
+      let allLoaded     = false;
+      const frameObj    = { current: 0 };   // GSAP will tween this
+
+      /* ───────────────────────────────────────────────────
+         Canvas sizing — match viewport, use devicePixelRatio
+         for a crisp retina render while keeping CSS size 100%.
+      ─────────────────────────────────────────────────── */
+      function sizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);  // cap at 2× for perf
+        canvas.width  = window.innerWidth  * dpr;
+        canvas.height = window.innerHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      sizeCanvas();
+      window.addEventListener('resize', () => {
+        sizeCanvas();
+        renderFrame(Math.round(frameObj.current));
+      });
+
+      /* ───────────────────────────────────────────────────
+         Draw a frame to the canvas, cover-fitted & centred
+      ─────────────────────────────────────────────────── */
+      function renderFrame(index) {
+        const img = frames[index];
+        if (!img) return;
+
+        const cw = window.innerWidth;
+        const ch = window.innerHeight;
+
+        // object-fit: cover math
+        const imgRatio    = NATIVE_W / NATIVE_H;
+        const screenRatio = cw / ch;
+        let drawW, drawH;
+
+        if (screenRatio > imgRatio) {
+          drawW = cw;
+          drawH = cw / imgRatio;
+        } else {
+          drawH = ch;
+          drawW = ch * imgRatio;
+        }
+
+        const x = (cw - drawW) / 2;
+        const y = (ch - drawH) / 2;
+
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.drawImage(img, x, y, drawW, drawH);
+      }
+
+      /* ───────────────────────────────────────────────────
+         Pre-load every frame (parallel with a concurrency
+         limiter so we don't choke the browser)
+      ─────────────────────────────────────────────────── */
+      function preloadFrames() {
+        return new Promise((resolve) => {
+          const CONCURRENCY = 8;
+          let queued = 0;
+
+          function next() {
+            if (queued >= FRAME_COUNT) return;
+            const idx = queued++;
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = FRAME_PATH(idx + 1);  // 1-indexed filenames
+
+            img.onload = () => {
+              frames[idx] = img;
+              loadedCount++;
+
+              // Update loader bar
+              const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
+              loaderBar.style.width = pct + '%';
+              loaderPct.textContent = pct + ' %';
+
+              // Paint first frame immediately so the user sees something
+              if (idx === 0) renderFrame(0);
+
+              if (loadedCount === FRAME_COUNT) {
+                allLoaded = true;
+                resolve();
+              } else {
+                next();  // queue next in this slot
+              }
+            };
+
+            img.onerror = () => {
+              // count it anyway so we don't stall
+              loadedCount++;
+              if (loadedCount === FRAME_COUNT) { allLoaded = true; resolve(); }
+              else next();
+            };
+          }
+
+          // kick off initial batch
+          for (let i = 0; i < CONCURRENCY; i++) next();
+        });
+      }
+
+      /* ───────────────────────────────────────────────────
+         Initialise GSAP ScrollTrigger after frames load
+      ─────────────────────────────────────────────────── */
+      async function init() {
+        await preloadFrames();
+
+        // Hide loader with a fade
+        loaderEl.classList.add('hidden');
+
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Tween frameObj.current from 0 → 143 (FRAME_COUNT - 1)
+        gsap.to(frameObj, {
+          current: FRAME_COUNT - 1,
+          ease: 'none',
+          snap: { current: 1 },    // snap to whole frames — no sub-frame blur
+          scrollTrigger: {
+            trigger: '#sequence-wrapper',
+            start: 'top top',
+            end: 'bottom bottom',
+            pin: '#sequence-canvas',
+            scrub: 0.4,            // 0.4s smoothing — responsive yet stutter-free
+            onUpdate() {
+              const idx = Math.round(frameObj.current);
+              renderFrame(idx);
+              counterEl.textContent = `${String(idx + 1).padStart(3, '0')} / ${FRAME_COUNT}`;
+            },
+            onEnter()     { counterEl.classList.add('visible'); },
+            onLeave()     { counterEl.classList.remove('visible'); },
+            onEnterBack() { counterEl.classList.add('visible'); },
+            onLeaveBack() { counterEl.classList.remove('visible'); },
+          },
+        });
+      }
+
+      init();
+    })();
+  </script>
+
+</body>
+</html>
