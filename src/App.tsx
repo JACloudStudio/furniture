@@ -8,6 +8,7 @@ import { CMSAdminToolbar } from './cms/CMSAdminToolbar';
 import { EditableText } from './cms/EditableText';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { AuthModal } from './auth/AuthModal';
+import { AdminPanel } from './auth/AdminPanel';
 import type { Product } from './types';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -48,7 +49,7 @@ const CartPlusIcon = () => (
 
 /* ── Scroll Sequence Constants ────────────────────── */
 const FRAME_COUNT = 161;
-const FRAME_PATH = (i: number) => `/frames/ezgif-frame-${String(i).padStart(3, '0')}.jpg`;
+const FRAME_PATH = (i: number) => `${import.meta.env.BASE_URL}frames/ezgif-frame-${String(i).padStart(3, '0')}.jpg`;
 const NATIVE_W = 1280;
 const NATIVE_H = 720;
 
@@ -56,6 +57,7 @@ function FurnitureAppContent() {
   const { siteData, isEditMode, updateSiteData, setEditingProduct } = useCMS();
   const { currentUser, openAuthModal, logout, isAdmin } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
+  const [adminPanelOpen, setAdminPanelOpen] = useState<boolean>(false);
 
   // Navigation & Page State
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -444,44 +446,124 @@ function FurnitureAppContent() {
                     position: 'absolute',
                     top: '125%',
                     right: 0,
-                    background: '#161922',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    borderRadius: '12px',
-                    padding: '0.8rem 1rem',
-                    minWidth: '200px',
-                    boxShadow: '0 15px 35px rgba(0,0,0,0.7)',
+                    background: 'linear-gradient(145deg, #161922, #1c1f2e)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '16px',
+                    padding: '0',
+                    minWidth: '260px',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)',
                     zIndex: 1000,
+                    overflow: 'hidden',
                   }}
                 >
-                  <div style={{ paddingBottom: '0.6rem', marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>{currentUser.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{currentUser.email}</div>
-                    <div style={{ marginTop: '0.3rem' }}>
+                  {/* Profile info header */}
+                  <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '50%',
+                        background: isAdmin ? 'linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-light)))' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        color: isAdmin ? '#000' : '#fff',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        border: isAdmin ? '2px solid hsl(var(--gold))' : '2px solid rgba(255,255,255,0.15)',
+                      }}
+                    >
+                      {currentUser.avatar ? (
+                        <img src={currentUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        currentUser.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.name}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.email}</div>
+                    </div>
+                  </div>
+
+                  {/* Menu items */}
+                  <div style={{ padding: '0.5rem' }}>
+                    {/* Role badge */}
+                    <div style={{ padding: '0.5rem 0.7rem', marginBottom: '0.2rem' }}>
                       <span
                         style={{
                           fontSize: '0.65rem',
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: '4px',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '6px',
                           fontWeight: 700,
                           textTransform: 'uppercase',
-                          background: isAdmin ? 'hsl(var(--gold))' : 'rgba(255, 255, 255, 0.15)',
-                          color: isAdmin ? '#000' : '#e5e7eb',
+                          letterSpacing: '0.04em',
+                          background: isAdmin ? 'rgba(218, 165, 32, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                          color: isAdmin ? 'hsl(var(--gold))' : '#9ca3af',
+                          border: `1px solid ${isAdmin ? 'rgba(218, 165, 32, 0.25)' : 'rgba(255,255,255,0.1)'}`,
                         }}
                       >
-                        Role: {currentUser.role}
+                        {isAdmin ? '👑 Administrator' : '🛍️ Customer'}
                       </span>
                     </div>
+
+                    {/* Admin Dashboard button */}
+                    <button
+                      onClick={() => { setAdminPanelOpen(true); setUserMenuOpen(false); }}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.7rem',
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: 'none',
+                        color: '#e5e7eb',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        fontFamily: 'inherit',
+                        transition: 'background 0.2s',
+                        textAlign: 'left',
+                        marginBottom: '0.2rem',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                    >
+                      <span style={{ fontSize: '1rem' }}>{isAdmin ? '⚡' : '👤'}</span>
+                      {isAdmin ? 'Admin Dashboard' : 'My Account'}
+                    </button>
+
+                    {/* Divider */}
+                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '0.3rem 0.7rem' }} />
+
+                    {/* Sign Out */}
+                    <button
+                      onClick={async () => { await logout(); setUserMenuOpen(false); }}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.7rem',
+                        borderRadius: '8px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#f87171',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        fontFamily: 'inherit',
+                        transition: 'background 0.2s',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    >
+                      <span style={{ fontSize: '1rem' }}>🚪</span>
+                      Sign Out
+                    </button>
                   </div>
-                  <button
-                    className="cms-btn cms-btn-danger"
-                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem' }}
-                    onClick={async () => {
-                      await logout();
-                      setUserMenuOpen(false);
-                    }}
-                  >
-                    🚪 Sign Out
-                  </button>
                 </div>
               )}
             </div>
@@ -1226,6 +1308,9 @@ function FurnitureAppContent() {
 
       {/* Render Auth Modal (Login / Signup) */}
       <AuthModal />
+
+      {/* Render Admin Dashboard / Profile Panel */}
+      <AdminPanel isOpen={adminPanelOpen} onClose={() => setAdminPanelOpen(false)} />
     </>
   );
 }
