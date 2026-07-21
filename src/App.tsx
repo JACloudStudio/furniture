@@ -2,27 +2,20 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './App.css';
+import './cms/cms.css';
+import { CMSProvider, useCMS } from './cms/CMSContext';
+import { CMSAdminToolbar } from './cms/CMSAdminToolbar';
+import { EditableText } from './cms/EditableText';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { AuthModal } from './auth/AuthModal';
+import type { Product } from './types';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Product Interface
-interface Product {
-  id: number;
-  name: string;
-  category: string; // 'living' | 'bedroom' | 'dining' | 'office'
-  price: number;
-  rating: number;
-  reviewsCount: number;
-  image: string;
-  tag?: string;
-  description: string;
-  specifications: {
-    material: string;
-    dimensions: string;
-    weight: string;
-    assemblyRequired: boolean;
-  };
-}
+// Custom SVG Icons Components
+const UserIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+);
 
 // Custom SVG Icons Components
 const ShoppingBagIcon = () => (
@@ -53,148 +46,17 @@ const CartPlusIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
 );
 
-// High Quality Furniture Dataset
-const PRODUCTS_DATA: Product[] = [
-  {
-    id: 1,
-    name: "Emilie Velvet Lounge Sofa",
-    category: "living",
-    price: 1249,
-    rating: 4.8,
-    reviewsCount: 128,
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80",
-    tag: "Best Seller",
-    description: "Immerse yourself in unrivaled luxury. The Emilie velvet lounge sofa features premium high-resilience foam wrapped in deep moss velvet, resting on solid tapered walnut wood legs.",
-    specifications: {
-      material: "High-density Velvet, Solid Walnut",
-      dimensions: "92\"W x 38\"D x 34\"H",
-      weight: "145 lbs",
-      assemblyRequired: true
-    }
-  },
-  {
-    id: 2,
-    name: "Hesper Danish Oak Dining Table",
-    category: "dining",
-    price: 899,
-    rating: 4.9,
-    reviewsCount: 84,
-    image: "https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&w=800&q=80",
-    tag: "New",
-    description: "Honoring traditional Nordic woodwork, the Hesper Dining Table is crafted from solid American white oak with soft, rounded edges that bring a warm, architectural presence to your home.",
-    specifications: {
-      material: "Solid White Oak",
-      dimensions: "78\"W x 36\"D x 30\"H",
-      weight: "110 lbs",
-      assemblyRequired: true
-    }
-  },
-  {
-    id: 3,
-    name: "Aero Ergonomic Task Chair",
-    category: "office",
-    price: 349,
-    rating: 4.7,
-    reviewsCount: 215,
-    image: "https://images.unsplash.com/photo-1505797149-43b0069ec26b?auto=format&fit=crop&w=800&q=80",
-    description: "Reimagine work comforts. Designed with an advanced 3D dynamic lumbar mesh, multi-axis armrests, and synchro-tilt mechanism that naturally cradles and aligns your spine.",
-    specifications: {
-      material: "Breathable ElastoMesh, Steel Alloy Frame",
-      dimensions: "27\"W x 27\"D x 42\"-46\"H",
-      weight: "48 lbs",
-      assemblyRequired: false
-    }
-  },
-  {
-    id: 4,
-    name: "Isla Bouclé Accent Armchair",
-    category: "living",
-    price: 499,
-    rating: 4.6,
-    reviewsCount: 62,
-    image: "https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=800&q=80",
-    tag: "Design Award",
-    description: "Make a sculptural statement. Isla is wrapped in rich off-white textured bouclé fabric, offering a comforting cocoon silhouette that serves as a centerpiece in any modern lounge.",
-    specifications: {
-      material: "Textured Bouclé Fabric, Bent Plywood",
-      dimensions: "34\"W x 32\"D x 29\"H",
-      weight: "55 lbs",
-      assemblyRequired: false
-    }
-  },
-  {
-    id: 5,
-    name: "Nordic Minimalist Bed Frame",
-    category: "bedroom",
-    price: 799,
-    rating: 4.9,
-    reviewsCount: 140,
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=800&q=80",
-    description: "Create an oasis of calm. Our platform bed frame features an integrated floating headboard, handcrafted using sustainably harvested red oak veneers with natural oil finishes.",
-    specifications: {
-      material: "Sustainably Harvested Red Oak",
-      dimensions: "84\"W x 65\"D x 40\"H (Queen)",
-      weight: "130 lbs",
-      assemblyRequired: true
-    }
-  },
-  {
-    id: 6,
-    name: "Milo Floating Bedside Drawer",
-    category: "bedroom",
-    price: 249,
-    rating: 4.5,
-    reviewsCount: 97,
-    image: "https://images.unsplash.com/photo-1532372320978-9b4d7a92b24d?auto=format&fit=crop&w=800&q=80",
-    description: "Maximize floor space with elegant utility. The Milo floating drawer mounts seamlessly on your wall, offering a spacious push-to-open drawer and cord management portals.",
-    specifications: {
-      material: "Walnut Wood Veneer",
-      dimensions: "18\"W x 14\"D x 8\"H",
-      weight: "18 lbs",
-      assemblyRequired: true
-    }
-  },
-  {
-    id: 7,
-    name: "Carrara Marble Coffee Table",
-    category: "living",
-    price: 599,
-    rating: 4.8,
-    reviewsCount: 51,
-    image: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80",
-    description: "A timeless dialogue between stone and metal. Hand-polished honed Italian Carrara marble sits upon a sleek, matte black powder-coated structural steel cross frame.",
-    specifications: {
-      material: "Carrara Marble, Powder-Coated Steel",
-      dimensions: "36\" Diameter x 16\"H",
-      weight: "74 lbs",
-      assemblyRequired: false
-    }
-  },
-  {
-    id: 8,
-    name: "Titan Oak & Metal Bookshelf",
-    category: "office",
-    price: 429,
-    rating: 4.7,
-    reviewsCount: 110,
-    image: "https://images.unsplash.com/photo-1595515106969-1ce29566ff1c?auto=format&fit=crop&w=800&q=80",
-    description: "High-grade industrial styling. This heavy-duty storage unit features five tiers of gorgeous solid oak planks held together by structural powder-coated carbon steel uprights.",
-    specifications: {
-      material: "Solid Oak Shelves, Carbon Steel frame",
-      dimensions: "40\"W x 12\"D x 72\"H",
-      weight: "95 lbs",
-      assemblyRequired: true
-    }
-  }
-];
-
 /* ── Scroll Sequence Constants ────────────────────── */
 const FRAME_COUNT = 161;
 const FRAME_PATH = (i: number) => `/frames/ezgif-frame-${String(i).padStart(3, '0')}.jpg`;
 const NATIVE_W = 1280;
 const NATIVE_H = 720;
 
-export default function App() {
+function FurnitureAppContent() {
+  const { siteData, isEditMode, updateSiteData, setEditingProduct } = useCMS();
+  const { currentUser, openAuthModal, logout, isAdmin } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
+
   // Navigation & Page State
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -274,13 +136,12 @@ export default function App() {
       const idx = queued++;
       const img = new Image();
       img.decoding = 'async';
-      img.src = FRAME_PATH(idx + 1); // 1-indexed filenames
+      img.src = FRAME_PATH(idx + 1);
 
       img.onload = () => {
         framesRef.current[idx] = img;
         loadedCount++;
         setLoadProgress(Math.round((loadedCount / FRAME_COUNT) * 100));
-        // Paint the first frame immediately so there's something visible
         if (idx === 0) {
           sizeCanvas();
           renderFrame(0);
@@ -343,7 +204,6 @@ export default function App() {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    // Check if the browser supports 'closedBy' property
     if (!('closedBy' in HTMLDialogElement.prototype)) {
       const handleOverlayClick = (event: MouseEvent) => {
         if (event.target !== dialog) return;
@@ -364,14 +224,12 @@ export default function App() {
     }
   }, [selectedProduct]);
 
-  // Open dialog whenever product selection updates
   useEffect(() => {
     if (selectedProduct && dialogRef.current) {
       dialogRef.current.showModal();
     }
   }, [selectedProduct]);
 
-  // Close dialog clean-up handler
   const handleCloseDialog = () => {
     if (dialogRef.current) {
       dialogRef.current.close();
@@ -379,7 +237,6 @@ export default function App() {
     setSelectedProduct(null);
   };
 
-  // Add Item to Cart
   const handleAddToCart = (id: number) => {
     setCart((prevCart) => {
       const existing = prevCart.find(item => item.id === id);
@@ -388,11 +245,9 @@ export default function App() {
       }
       return [...prevCart, { id, quantity: 1 }];
     });
-    // Open cart drawer when adding item for nice micro-interaction feedback
     setCartOpen(true);
   };
 
-  // Update Cart Quantity
   const handleUpdateQuantity = (id: number, delta: number) => {
     setCart((prevCart) => {
       return prevCart
@@ -407,14 +262,12 @@ export default function App() {
     });
   };
 
-  // Remove Item from Cart
   const handleRemoveFromCart = (id: number) => {
     setCart((prevCart) => prevCart.filter(item => item.id !== id));
   };
 
-  // Toggle Wishlist Status
   const handleToggleWishlist = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Avoid triggering open modal details
+    e.stopPropagation();
     setWishlist((prevWishlist) => {
       if (prevWishlist.includes(id)) {
         return prevWishlist.filter(itemId => itemId !== id);
@@ -423,7 +276,6 @@ export default function App() {
     });
   };
 
-  // Handle Newsletter Submission
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -437,15 +289,14 @@ export default function App() {
     setNewsletterMessage('Thank you! Welcome to the inner circle.');
     setNewsletterEmail('');
     
-    // Clear message after 4s
     setTimeout(() => {
       setNewsletterStatus('idle');
       setNewsletterMessage('');
     }, 4000);
   };
 
-  // Filter & Sort Products
-  const filteredProducts = PRODUCTS_DATA.filter(product => {
+  // Filter & Sort Products from CMS siteData
+  const filteredProducts = (siteData.products || []).filter(product => {
     const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -457,22 +308,62 @@ export default function App() {
     if (sortOption === 'price-asc') return a.price - b.price;
     if (sortOption === 'price-desc') return b.price - a.price;
     if (sortOption === 'rating') return b.rating - a.rating;
-    return 0; // Default Featured sorting (original layout order)
+    return 0;
   });
 
-  // Totals calculations
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => {
-    const product = PRODUCTS_DATA.find(p => p.id === item.id);
+    const product = siteData.products.find(p => p.id === item.id);
     return sum + (product ? product.price * item.quantity : 0);
   }, 0);
 
   return (
     <>
+      {/* CMS Floating Control Bar */}
+      <CMSAdminToolbar />
+
+      {/* Dynamic Announcement Bar */}
+      {siteData.branding.announcement?.active && (
+        <div className="announcement-bar" style={{ background: 'hsl(var(--accent))', color: '#fff', textAlign: 'center', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}>
+          <EditableText
+            as="span"
+            value={siteData.branding.announcement.badgeText}
+            onSave={(val) =>
+              updateSiteData((prev) => ({
+                ...prev,
+                branding: { ...prev.branding, announcement: { ...prev.branding.announcement, badgeText: val } },
+              }))
+            }
+            style={{ background: '#000', color: 'hsl(var(--gold))', padding: '0.15rem 0.5rem', borderRadius: '4px', textTransform: 'uppercase', fontSize: '0.7rem' }}
+          />
+          <EditableText
+            as="span"
+            value={siteData.branding.announcement.text}
+            onSave={(val) =>
+              updateSiteData((prev) => ({
+                ...prev,
+                branding: { ...prev.branding, announcement: { ...prev.branding.announcement, text: val } },
+              }))
+            }
+          />
+        </div>
+      )}
+
       {/* Sticky Header Navigation */}
       <header className="main-header">
         <div className="container header-container">
-          <a href="#" className="brand-logo">AURA</a>
+          <EditableText
+            as="a"
+            href="#"
+            className="brand-logo"
+            value={siteData.branding.logoText}
+            onSave={(val) =>
+              updateSiteData((prev) => ({
+                ...prev,
+                branding: { ...prev.branding, logoText: val },
+              }))
+            }
+          />
           
           <nav className="nav-links">
             <a href="#collections">Collections</a>
@@ -492,14 +383,115 @@ export default function App() {
               />
             </div>
             
+            {/* User Account / Auth Profile Menu */}
+            <div className="user-account-menu" style={{ position: 'relative' }}>
+              {currentUser ? (
+                <button
+                  className="action-btn user-profile-btn"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '9999px',
+                    background: isAdmin ? 'rgba(224, 169, 109, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                    border: isAdmin ? '1px solid hsl(var(--gold))' : '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#fff',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                  }}
+                  title={`Logged in as ${currentUser.name} (${currentUser.role})`}
+                >
+                  {currentUser.avatar ? (
+                    <img src={currentUser.avatar} alt={currentUser.name} style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <UserIcon />
+                  )}
+                  <span style={{ fontWeight: 600, maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {currentUser.name.split(' ')[0]}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.62rem',
+                      padding: '0.1rem 0.35rem',
+                      borderRadius: '4px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      background: isAdmin ? 'hsl(var(--gold))' : 'rgba(255, 255, 255, 0.2)',
+                      color: isAdmin ? '#000' : '#fff',
+                    }}
+                  >
+                    {currentUser.role}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  className="cms-btn cms-btn-primary"
+                  onClick={() => openAuthModal('login')}
+                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <UserIcon />
+                  <span>Sign In</span>
+                </button>
+              )}
+
+              {/* User Dropdown Menu */}
+              {userMenuOpen && currentUser && (
+                <div
+                  className="user-dropdown-menu animate-scale-in"
+                  style={{
+                    position: 'absolute',
+                    top: '125%',
+                    right: 0,
+                    background: '#161922',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '12px',
+                    padding: '0.8rem 1rem',
+                    minWidth: '200px',
+                    boxShadow: '0 15px 35px rgba(0,0,0,0.7)',
+                    zIndex: 1000,
+                  }}
+                >
+                  <div style={{ paddingBottom: '0.6rem', marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>{currentUser.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{currentUser.email}</div>
+                    <div style={{ marginTop: '0.3rem' }}>
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          background: isAdmin ? 'hsl(var(--gold))' : 'rgba(255, 255, 255, 0.15)',
+                          color: isAdmin ? '#000' : '#e5e7eb',
+                        }}
+                      >
+                        Role: {currentUser.role}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    className="cms-btn cms-btn-danger"
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem' }}
+                    onClick={async () => {
+                      await logout();
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    🚪 Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <button 
               className="action-btn wishlist-toggle-btn"
               onClick={() => {
-                // Instantly filter list by user wishlist or search
                 setActiveCategory('all');
                 setSearchQuery('');
-                // If query matches some wishlist stuff or just alerts user
-                alert(`Wishlisted items: ${wishlist.length ? wishlist.map(id => PRODUCTS_DATA.find(p=>p.id===id)?.name).join(', ') : 'No items yet'}`);
+                alert(`Wishlisted items: ${wishlist.length ? wishlist.map(id => siteData.products.find(p=>p.id===id)?.name).join(', ') : 'No items yet'}`);
               }}
               aria-label="Wishlist"
             >
@@ -522,11 +514,11 @@ export default function App() {
       {/* Main E-Commerce Content */}
       <main>
         
-        {/* ── Loading Overlay (shown while frames preload) ── */}
+        {/* Loading Overlay */}
         {!framesLoaded && (
           <div className="seq-loader">
             <div className="seq-loader-inner">
-              <div className="seq-loader-brand">AURA</div>
+              <div className="seq-loader-brand">{siteData.branding.logoText}</div>
               <div className="seq-loader-bar-track">
                 <div className="seq-loader-bar-fill" style={{ width: `${loadProgress}%` }} />
               </div>
@@ -535,7 +527,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ── Scroll-Linked Canvas Hero Sequence ── */}
+        {/* Scroll-Linked Canvas Hero Sequence */}
         <div id="hero-sequence-wrapper" className="hero-sequence-wrapper">
           <canvas
             id="hero-canvas"
@@ -543,33 +535,99 @@ export default function App() {
             className="hero-sequence-canvas"
           />
 
-          {/* Overlay text that sits on top of the pinned canvas */}
           <div className="hero-overlay-content hero-overlay-intro">
-            <span className="hero-tag">Aura Artisanal Series // 2026</span>
-            <h1 className="hero-title">Space is a Canvas.<br />Write Your Story.</h1>
-            <p className="hero-subtitle">
-              Crafted for comfort, built for longevity. A curated collection of mid-century minimalist furniture, handcrafted with sustainable premium American hardwoods.
-            </p>
+            <EditableText
+              as="span"
+              className="hero-tag"
+              value={siteData.hero.tag}
+              onSave={(val) =>
+                updateSiteData((prev) => ({
+                  ...prev,
+                  hero: { ...prev.hero, tag: val },
+                }))
+              }
+            />
+            
+            <EditableText
+              as="h1"
+              className="hero-title"
+              multiline
+              value={siteData.hero.title}
+              onSave={(val) =>
+                updateSiteData((prev) => ({
+                  ...prev,
+                  hero: { ...prev.hero, title: val },
+                }))
+              }
+            />
+
+            <EditableText
+              as="p"
+              className="hero-subtitle"
+              multiline
+              value={siteData.hero.subtitle}
+              onSave={(val) =>
+                updateSiteData((prev) => ({
+                  ...prev,
+                  hero: { ...prev.hero, subtitle: val },
+                }))
+              }
+            />
+
             <div className="hero-ctas">
-              <a href="#products" className="btn btn-primary">Browse Catalogue</a>
-              <a href="#about" className="btn btn-secondary">Discover Craftsmanship</a>
+              <EditableText
+                as="a"
+                href="#products"
+                className="btn btn-primary"
+                value={siteData.hero.primaryCtaText}
+                onSave={(val) =>
+                  updateSiteData((prev) => ({
+                    ...prev,
+                    hero: { ...prev.hero, primaryCtaText: val },
+                  }))
+                }
+              />
+              <EditableText
+                as="a"
+                href="#about"
+                className="btn btn-secondary"
+                value={siteData.hero.secondaryCtaText}
+                onSave={(val) =>
+                  updateSiteData((prev) => ({
+                    ...prev,
+                    hero: { ...prev.hero, secondaryCtaText: val },
+                  }))
+                }
+              />
             </div>
           </div>
 
           <div className="hero-overlay-content hero-overlay-stats">
             <div className="hero-stats">
-              <div className="stat-item">
-                <span className="stat-number">100%</span>
-                <span className="stat-label">Sustainable Solid Wood</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">10+ Yr</span>
-                <span className="stat-label">Structural Guarantee</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">4.9 ★</span>
-                <span className="stat-label">Average Rating (5k+ reviews)</span>
-              </div>
+              {siteData.hero.stats.map((stat, idx) => (
+                <div key={idx} className="stat-item">
+                  <EditableText
+                    as="span"
+                    className="stat-number"
+                    value={stat.number}
+                    onSave={(val) => {
+                      const updated = [...siteData.hero.stats];
+                      updated[idx].number = val;
+                      updateSiteData((prev) => ({ ...prev, hero: { ...prev.hero, stats: updated } }));
+                    }}
+                  />
+                  <EditableText
+                    as="span"
+                    className="stat-label"
+                    value={stat.label}
+                    onSave={(val) => {
+                      const updated = [...siteData.hero.stats];
+                      updated[idx].label = val;
+                      updateSiteData((prev) => ({ ...prev, hero: { ...prev.hero, stats: updated } }));
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -587,12 +645,7 @@ export default function App() {
           </div>
           
           <div className="category-cards-grid">
-            {[
-              { id: 'living', name: 'Living Room', count: '3 Products', image: 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&w=600&q=80' },
-              { id: 'bedroom', name: 'Bedroom', count: '2 Products', image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80' },
-              { id: 'dining', name: 'Dining Room', count: '1 Product', image: 'https://images.unsplash.com/photo-1530018607912-eff2df114fbe?auto=format&fit=crop&w=600&q=80' },
-              { id: 'office', name: 'Home Office', count: '2 Products', image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=600&q=80' },
-            ].map(cat => (
+            {(siteData.categories || []).map(cat => (
               <button 
                 key={cat.id} 
                 className={`category-card ${activeCategory === cat.id ? 'active' : ''}`}
@@ -616,9 +669,16 @@ export default function App() {
 
         {/* Product Catalog Section */}
         <section id="products" className="catalog-section container">
-          <div className="section-header">
-            <h2 className="section-title">Discover Our Pieces</h2>
-            <p className="section-subtitle">A collection that prioritizes structural integrity, raw materials, and clean joinery.</p>
+          <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 className="section-title">Discover Our Pieces</h2>
+              <p className="section-subtitle">A collection that prioritizes structural integrity, raw materials, and clean joinery.</p>
+            </div>
+            {isEditMode && (
+              <button className="cms-btn cms-btn-primary" onClick={() => setEditingProduct('new')}>
+                ➕ Add New Product
+              </button>
+            )}
           </div>
 
           {/* Filtering and Sorting Bar */}
@@ -688,6 +748,20 @@ export default function App() {
                   <article key={product.id} className="product-card" onClick={() => setSelectedProduct(product)}>
                     <div className="product-img-wrapper">
                       {product.tag && <span className="product-badge">{product.tag}</span>}
+                      
+                      {isEditMode && (
+                        <button
+                          className="cms-btn cms-btn-primary"
+                          style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 12, padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProduct(product);
+                          }}
+                        >
+                          ✏️ Edit Item
+                        </button>
+                      )}
+
                       <button 
                         className="wishlist-btn"
                         onClick={(e) => handleToggleWishlist(product.id, e)}
@@ -708,13 +782,15 @@ export default function App() {
                           <span>{product.rating}</span>
                         </div>
                       </div>
+
                       <h3 className="product-name">{product.name}</h3>
+
                       <div className="product-purchase">
                         <span className="product-price">${product.price}</span>
                         <button 
                           className="add-to-cart-action-btn"
                           onClick={(e) => {
-                            e.stopPropagation(); // Stop opening quick view
+                            e.stopPropagation();
                             handleAddToCart(product.id);
                           }}
                           aria-label="Add to cart"
@@ -741,38 +817,82 @@ export default function App() {
           <div className="container craftsmanship-grid">
             <div className="craft-images-container">
               <img 
-                src="https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=800&q=80" 
-                alt="Mid-century modern room with plants and bedside wood drawer"
+                src={siteData.craftsmanship.primaryImage} 
+                alt="Craftsmanship main showcase"
                 className="craft-img-primary"
               />
               <img 
-                src="https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=600&q=80" 
-                alt="Woodworking joinery detail"
+                src={siteData.craftsmanship.secondaryImage} 
+                alt="Woodworking detail"
                 className="craft-img-secondary"
               />
             </div>
             <div className="craft-content">
-              <span className="section-label">OUR PHILOSOPHY</span>
-              <h2>Handcrafted Heritage & Honest Joinery</h2>
-              <p>
-                We believe that furniture shouldn’t just fill a space; it should ground it. Every piece in the AURA series is constructed in our local workshop using traditional mortise-and-tenon joints, ensuring that no metals compromise the flex and breathing of natural timber.
-              </p>
-              <p>
-                We collaborate exclusively with FSC-certified family forests in the Pacific Northwest, promising that for every walnut or oak timber logged, three saplings are planted in their stead. Designed for contemporary life, guaranteed to last generations.
-              </p>
+              <EditableText
+                as="span"
+                className="section-label"
+                value={siteData.craftsmanship.label}
+                onSave={(val) =>
+                  updateSiteData((prev) => ({
+                    ...prev,
+                    craftsmanship: { ...prev.craftsmanship, label: val },
+                  }))
+                }
+              />
+              
+              <EditableText
+                as="h2"
+                value={siteData.craftsmanship.title}
+                onSave={(val) =>
+                  updateSiteData((prev) => ({
+                    ...prev,
+                    craftsmanship: { ...prev.craftsmanship, title: val },
+                  }))
+                }
+              />
+
+              <EditableText
+                as="p"
+                multiline
+                value={siteData.craftsmanship.paragraph1}
+                onSave={(val) =>
+                  updateSiteData((prev) => ({
+                    ...prev,
+                    craftsmanship: { ...prev.craftsmanship, paragraph1: val },
+                  }))
+                }
+              />
+
+              <EditableText
+                as="p"
+                multiline
+                value={siteData.craftsmanship.paragraph2}
+                onSave={(val) =>
+                  updateSiteData((prev) => ({
+                    ...prev,
+                    craftsmanship: { ...prev.craftsmanship, paragraph2: val },
+                  }))
+                }
+              />
+
               <div className="benefits-checklist">
-                <div className="benefit-item">
-                  <span className="benefit-icon">✓</span>
-                  <span>100% Solid Solid Wood (No particle board, ever)</span>
-                </div>
-                <div className="benefit-item">
-                  <span className="benefit-icon">✓</span>
-                  <span>Zero-VOC Natural Wax Oil finishes</span>
-                </div>
-                <div className="benefit-item">
-                  <span className="benefit-icon">✓</span>
-                  <span>Free White-glove delivery on all collections</span>
-                </div>
+                {(siteData.craftsmanship.benefits || []).map((b, idx) => (
+                  <div key={idx} className="benefit-item">
+                    <span className="benefit-icon">✓</span>
+                    <EditableText
+                      as="span"
+                      value={b}
+                      onSave={(val) => {
+                        const newBenefits = [...siteData.craftsmanship.benefits];
+                        newBenefits[idx] = val;
+                        updateSiteData((prev) => ({
+                          ...prev,
+                          craftsmanship: { ...prev.craftsmanship, benefits: newBenefits },
+                        }));
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -782,49 +902,57 @@ export default function App() {
         <section id="testimonials" className="testimonials-section container">
           <div className="section-header">
             <h2 className="section-title">Enduring Opinions</h2>
-            <p className="section-subtitle">Hear what design enthusiasts say about their AURA collections.</p>
+            <p className="section-subtitle">Hear what design enthusiasts say about their {siteData.branding.logoText} collections.</p>
           </div>
 
           <div className="testimonials-grid">
-            {[
-              {
-                text: "The Emilie Sofa completely converted our living room. The moss green velvet is incredibly rich, and you can instantly feel the sturdiness of the walnut frame.",
-                author: "Clarissa Vance",
-                role: "Interior Designer",
-                rating: 5,
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
-              },
-              {
-                text: "Rarely do you find furniture online that matches or exceeds the photograph. The oak dining table is an absolute masterpiece of carpentry. Highly recommend.",
-                author: "Julian Reynolds",
-                role: "Architect",
-                rating: 5,
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
-              },
-              {
-                text: "Aero task chair makes home office hours a delight. Lumbar adjustment is dynamic and the mesh is highly breathable. Beautifully marries function and modern style.",
-                author: "Sarah Jenkins",
-                role: "Remote Software Engineer",
-                rating: 5,
-                avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80"
-              }
-            ].map((t, idx) => (
-              <div key={idx} className="testimonial-card">
+            {(siteData.testimonials || []).map((t, idx) => (
+              <div key={t.id || idx} className="testimonial-card">
                 <div className="testimonial-header">
                   <div className="reviewer-avatar">
                     <img src={t.avatar} alt={t.author} />
                   </div>
                   <div>
-                    <h4 className="reviewer-name">{t.author}</h4>
-                    <span className="reviewer-role">{t.role}</span>
+                    <EditableText
+                      as="h4"
+                      className="reviewer-name"
+                      value={t.author}
+                      onSave={(val) => {
+                        const updated = [...siteData.testimonials];
+                        updated[idx].author = val;
+                        updateSiteData((prev) => ({ ...prev, testimonials: updated }));
+                      }}
+                    />
+                    <EditableText
+                      as="span"
+                      className="reviewer-role"
+                      value={t.role}
+                      onSave={(val) => {
+                        const updated = [...siteData.testimonials];
+                        updated[idx].role = val;
+                        updateSiteData((prev) => ({ ...prev, testimonials: updated }));
+                      }}
+                    />
                   </div>
                 </div>
+
                 <div className="testimonial-rating">
-                  {Array.from({ length: t.rating }).map((_, i) => (
+                  {Array.from({ length: t.rating || 5 }).map((_, i) => (
                     <StarIcon key={i} />
                   ))}
                 </div>
-                <p className="testimonial-text">"{t.text}"</p>
+
+                <EditableText
+                  as="p"
+                  className="testimonial-text"
+                  multiline
+                  value={t.text}
+                  onSave={(val) => {
+                    const updated = [...siteData.testimonials];
+                    updated[idx].text = val;
+                    updateSiteData((prev) => ({ ...prev, testimonials: updated }));
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -833,7 +961,7 @@ export default function App() {
         {/* Newsletter Subscription Banner */}
         <section className="newsletter-section">
           <div className="container newsletter-content">
-            <span className="section-label">AURA CIRCLE</span>
+            <span className="section-label">{siteData.branding.logoText} CIRCLE</span>
             <h2>Join the Inner Circle</h2>
             <p>Subscribe to receive preview access to our seasonal furniture drops and architectural styling guides.</p>
             
@@ -872,7 +1000,7 @@ export default function App() {
           {cart.length > 0 ? (
             <div className="cart-items-list">
               {cart.map((item) => {
-                const product = PRODUCTS_DATA.find(p => p.id === item.id);
+                const product = siteData.products.find(p => p.id === item.id);
                 if (!product) return null;
                 return (
                   <div key={item.id} className="cart-item">
@@ -997,8 +1125,28 @@ export default function App() {
       <footer className="main-footer-section">
         <div className="container footer-grid">
           <div className="footer-brand">
-            <h3 className="footer-logo">AURA</h3>
-            <p>Premium architectural and minimalist home designs, handcrafted with ecological care.</p>
+            <EditableText
+              as="h3"
+              className="footer-logo"
+              value={siteData.footer.logoText}
+              onSave={(val) =>
+                updateSiteData((prev) => ({
+                  ...prev,
+                  footer: { ...prev.footer, logoText: val },
+                }))
+              }
+            />
+            <EditableText
+              as="p"
+              multiline
+              value={siteData.footer.tagline}
+              onSave={(val) =>
+                updateSiteData((prev) => ({
+                  ...prev,
+                  footer: { ...prev.footer, tagline: val },
+                }))
+              }
+            />
             <div className="footer-socials">
               <a href="#" aria-label="Instagram">IG</a>
               <a href="#" aria-label="Pinterest">PI</a>
@@ -1020,32 +1168,74 @@ export default function App() {
           <div className="footer-links-col">
             <h4>Support</h4>
             <ul>
-              <li><a href="#">White-Glove Shipping</a></li>
-              <li><a href="#">Returns & Exchanges</a></li>
-              <li><a href="#">Warranty Details</a></li>
-              <li><a href="#">Care & Restoration</a></li>
+              {(siteData.footer.supportLinks || []).map((linkText, idx) => (
+                <li key={idx}>
+                  <EditableText
+                    as="a"
+                    href="#"
+                    value={linkText}
+                    onSave={(val) => {
+                      const updated = [...siteData.footer.supportLinks];
+                      updated[idx] = val;
+                      updateSiteData((prev) => ({ ...prev, footer: { ...prev.footer, supportLinks: updated } }));
+                    }}
+                  />
+                </li>
+              ))}
             </ul>
           </div>
           
           <div className="footer-links-col">
             <h4>Showrooms</h4>
             <ul>
-              <li><a href="#">Portland Workshop</a></li>
-              <li><a href="#">Seattle Showroom</a></li>
-              <li><a href="#">Los Angeles Gallery</a></li>
-              <li><a href="#">Brooklyn Collective</a></li>
+              {(siteData.footer.showrooms || []).map((showroom, idx) => (
+                <li key={idx}>
+                  <EditableText
+                    as="a"
+                    href="#"
+                    value={showroom}
+                    onSave={(val) => {
+                      const updated = [...siteData.footer.showrooms];
+                      updated[idx] = val;
+                      updateSiteData((prev) => ({ ...prev, footer: { ...prev.footer, showrooms: updated } }));
+                    }}
+                  />
+                </li>
+              ))}
             </ul>
           </div>
         </div>
         
         <div className="container footer-copyright-row">
-          <p>© {new Date().getFullYear()} AURA Furniture Inc. All rights reserved.</p>
+          <EditableText
+            as="p"
+            value={siteData.footer.copyrightText}
+            onSave={(val) =>
+              updateSiteData((prev) => ({
+                ...prev,
+                footer: { ...prev.footer, copyrightText: val },
+              }))
+            }
+          />
           <div className="footer-policy-links">
             <a href="#">Privacy Policy</a>
             <a href="#">Terms of Service</a>
           </div>
         </div>
       </footer>
+
+      {/* Render Auth Modal (Login / Signup) */}
+      <AuthModal />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <CMSProvider>
+        <FurnitureAppContent />
+      </CMSProvider>
+    </AuthProvider>
   );
 }
