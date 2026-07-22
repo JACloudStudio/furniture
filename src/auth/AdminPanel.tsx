@@ -199,62 +199,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 </div>
               )}
 
-              {/* Powers list (admin only) */}
-              {isAdmin && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff', marginBottom: '0.8rem' }}>
-                    Your Admin Powers
-                  </div>
-                  {[
-                    { icon: '✏️', title: 'Live Edit Mode', desc: 'Edit website content inline with Visual CMS' },
-                    { icon: '🛋️', title: 'Product Management', desc: 'Add, edit, and remove furniture items' },
-                    { icon: '🎨', title: 'Theme & Branding', desc: 'Change colors, logo, and site identity' },
-                    { icon: '👑', title: 'Admin Management', desc: 'Add or remove admin email addresses' },
-                    { icon: '📥', title: 'Data Backup & Restore', desc: 'Export and import site content as JSON' },
-                    { icon: '🔄', title: 'Reset to Defaults', desc: 'Restore original site content & products' },
-                  ].map((power) => (
-                    <div
-                      key={power.title}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '0.75rem',
-                        padding: '0.7rem 0.8rem',
-                        borderRadius: '10px',
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        marginBottom: '0.4rem',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <span style={{ fontSize: '1.15rem', flexShrink: 0, marginTop: '0.1rem' }}>{power.icon}</span>
-                      <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e5e7eb' }}>{power.title}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.15rem' }}>{power.desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
 
-              {/* Non-admin info */}
-              {!isAdmin && (
-                <div
-                  style={{
-                    padding: '1.2rem',
-                    borderRadius: '14px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                  }}
-                >
-                  <div style={{ fontSize: '0.85rem', color: '#e5e7eb', lineHeight: 1.6 }}>
-                    You're signed in as a <strong>customer</strong>. Browse our curated furniture collection, add items to your wishlist, and enjoy the shopping experience.
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '0.6rem' }}>
-                    Contact an admin if you need elevated access.
-                  </div>
-                </div>
-              )}
+
             </div>
           )}
 

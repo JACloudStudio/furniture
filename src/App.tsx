@@ -389,41 +389,21 @@ function FurnitureAppContent() {
             <div className="user-account-menu" style={{ position: 'relative' }}>
               {currentUser ? (
                 <button
-                  className="action-btn user-profile-btn"
+                  className={`user-profile-btn ${isAdmin ? 'is-admin' : ''}`}
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '9999px',
-                    background: isAdmin ? 'rgba(224, 169, 109, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-                    border: isAdmin ? '1px solid hsl(var(--gold))' : '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
                   title={`Logged in as ${currentUser.name} (${currentUser.role})`}
                 >
                   {currentUser.avatar ? (
                     <img src={currentUser.avatar} alt={currentUser.name} style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    <UserIcon />
+                    <span className="avatar-placeholder">
+                      {currentUser.name.charAt(0).toUpperCase()}
+                    </span>
                   )}
-                  <span style={{ fontWeight: 600, maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span className="username-text">
                     {currentUser.name.split(' ')[0]}
                   </span>
-                  <span
-                    style={{
-                      fontSize: '0.62rem',
-                      padding: '0.1rem 0.35rem',
-                      borderRadius: '4px',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      background: isAdmin ? 'hsl(var(--gold))' : 'rgba(255, 255, 255, 0.2)',
-                      color: isAdmin ? '#000' : '#fff',
-                    }}
-                  >
+                  <span className="role-badge">
                     {currentUser.role}
                   </span>
                 </button>
@@ -440,70 +420,27 @@ function FurnitureAppContent() {
 
               {/* User Dropdown Menu */}
               {userMenuOpen && currentUser && (
-                <div
-                  className="user-dropdown-menu animate-scale-in"
-                  style={{
-                    position: 'absolute',
-                    top: '125%',
-                    right: 0,
-                    background: 'linear-gradient(145deg, #161922, #1c1f2e)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '16px',
-                    padding: '0',
-                    minWidth: '260px',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)',
-                    zIndex: 1000,
-                    overflow: 'hidden',
-                  }}
-                >
+                <div className="user-dropdown-menu">
                   {/* Profile info header */}
-                  <div style={{ padding: '1rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div
-                      style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        background: isAdmin ? 'linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-light)))' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.95rem',
-                        fontWeight: 700,
-                        color: isAdmin ? '#000' : '#fff',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                        border: isAdmin ? '2px solid hsl(var(--gold))' : '2px solid rgba(255,255,255,0.15)',
-                      }}
-                    >
+                  <div className="user-dropdown-header">
+                    <div className={`user-dropdown-avatar ${isAdmin ? 'is-admin' : ''}`}>
                       {currentUser.avatar ? (
                         <img src={currentUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         currentUser.name.charAt(0).toUpperCase()
                       )}
                     </div>
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.email}</div>
+                    <div className="user-dropdown-info">
+                      <div className="user-dropdown-name">{currentUser.name}</div>
+                      <div className="user-dropdown-email">{currentUser.email}</div>
                     </div>
                   </div>
 
                   {/* Menu items */}
-                  <div style={{ padding: '0.5rem' }}>
+                  <div className="user-dropdown-body">
                     {/* Role badge */}
-                    <div style={{ padding: '0.5rem 0.7rem', marginBottom: '0.2rem' }}>
-                      <span
-                        style={{
-                          fontSize: '0.65rem',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '6px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em',
-                          background: isAdmin ? 'rgba(218, 165, 32, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-                          color: isAdmin ? 'hsl(var(--gold))' : '#9ca3af',
-                          border: `1px solid ${isAdmin ? 'rgba(218, 165, 32, 0.25)' : 'rgba(255,255,255,0.1)'}`,
-                        }}
-                      >
+                    <div className="user-dropdown-role-row">
+                      <span className={`role-badge ${isAdmin ? 'is-admin' : ''}`} style={{ textTransform: 'uppercase', fontSize: '0.65rem', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 700, background: isAdmin ? 'hsl(var(--gold))' : 'rgba(255, 255, 255, 0.15)', color: isAdmin ? '#000' : '#fff' }}>
                         {isAdmin ? '👑 Administrator' : '🛍️ Customer'}
                       </span>
                     </div>
@@ -511,56 +448,21 @@ function FurnitureAppContent() {
                     {/* Admin Dashboard button */}
                     <button
                       onClick={() => { setAdminPanelOpen(true); setUserMenuOpen(false); }}
-                      style={{
-                        width: '100%',
-                        padding: '0.6rem 0.7rem',
-                        borderRadius: '8px',
-                        background: 'rgba(255, 255, 255, 0.04)',
-                        border: 'none',
-                        color: '#e5e7eb',
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        fontFamily: 'inherit',
-                        transition: 'background 0.2s',
-                        textAlign: 'left',
-                        marginBottom: '0.2rem',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                      className="user-dropdown-item admin-action"
                     >
-                      <span style={{ fontSize: '1rem' }}>{isAdmin ? '⚡' : '👤'}</span>
+                      <span>{isAdmin ? '⚡' : '👤'}</span>
                       {isAdmin ? 'Admin Dashboard' : 'My Account'}
                     </button>
 
                     {/* Divider */}
-                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '0.3rem 0.7rem' }} />
+                    <div className="user-dropdown-divider" />
 
                     {/* Sign Out */}
                     <button
                       onClick={async () => { await logout(); setUserMenuOpen(false); }}
-                      style={{
-                        width: '100%',
-                        padding: '0.6rem 0.7rem',
-                        borderRadius: '8px',
-                        background: 'none',
-                        border: 'none',
-                        color: '#f87171',
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        fontFamily: 'inherit',
-                        transition: 'background 0.2s',
-                        textAlign: 'left',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                      className="user-dropdown-logout"
                     >
-                      <span style={{ fontSize: '1rem' }}>🚪</span>
+                      <span>🚪</span>
                       Sign Out
                     </button>
                   </div>
