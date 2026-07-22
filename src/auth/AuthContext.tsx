@@ -7,6 +7,8 @@ import {
   GoogleAuthProvider,
   signOut,
   updateProfile,
+  setPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import {
@@ -93,6 +95,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
     return () => unsub();
+  }, []);
+
+  // Configure browser session persistence (cleared when browser window/tab is closed)
+  useEffect(() => {
+    setPersistence(auth, browserSessionPersistence)
+      .catch((error) => {
+        console.error('Failed to set session persistence:', error);
+      });
   }, []);
 
   // Listen to Firebase Auth state
